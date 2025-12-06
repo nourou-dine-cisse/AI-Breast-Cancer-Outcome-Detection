@@ -17,18 +17,18 @@ We consider that the main outcome variable of interest is **vital_status**, whic
 ```{r cars}
 # Data loading
 load("mrr_bio.Rdata")
-library("S4Vectors")
+library('S4Vectors')
 ```
 
 ```{r}
 # genetic data
-Gdata <- data.frame(GeneX)
+Gdata = data.frame(GeneX)
 head(Gdata)
 ```
 
 ```{r}
 # clinical data
-Cdata <- data.frame(clinical_data)
+Cdata = data.frame(clinical_data)
 
 # Identiy the rows to keep
 keep_idx <- !is.na(Cdata$vital_status)
@@ -40,48 +40,47 @@ Gdata <- Gdata[keep_idx, ]
 head(Cdata)
 ```
 ```{r}
-# The bcr_patient_barcode and primary_site can be dropped
+# The bcr_patient_barcode and primary_site can be dropped 
 Cdata$bcr_patient_barcode <- NULL # no relevant informations
 # diesease type and primary_site column are constant so we will drop them
 Cdata$disease_type <- NULL
 Cdata$primary_site <- NULL
-Cdata$days_to_birth <- NULL # redondent
-Cdata$age_at_index <- NULL
+Cdata$days_to_birth <- NULL #redondent
+Cdata$age_at_index <- NULL #redondent
 ```
 
 ## Exploratory data analysis
 ### GeneX dataset:
 ```{r}
-# dimension
+# dimension 
 dim(Gdata)
 
 # data types
 paste("Existing data types: ", unique(sapply(Gdata, class)))
 
 # duplicates
-# paste("Is there duplicates: " , unique(duplicated(Gdata))
+#paste("Is there duplicates: " , unique(duplicated(Gdata))
 
 # missing values
 paste("Is there NAN: ", anyNA(Gdata))
 
 # summary statistics of first 10 genes
-apply(Gdata[, 1:10], 2, summary)
+apply(Gdata[,1:10],2, summary)
 
-# visualisation:
+# visualisation: 
 # distribution of the first column
 library(ggplot2)
-ggplot(Gdata[, 1:10], aes(x = CLEC3A)) +
-  geom_histogram()
+ggplot(Gdata[,1:10], aes(x = CLEC3A)) +geom_histogram()
 
 # heatmap of the first 10 genes
 library(pheatmap)
-pheatmap(Gdata[, 1:10], scale = "row")
+pheatmap(Gdata[, 1:10], scale="row")
 ```
 
 
 ### clinical_data dataset:
 ```{r}
-# dimension
+# dimension 
 dim(Cdata)
 
 # data types
@@ -90,8 +89,8 @@ unique(sapply(Cdata, class))
 ```
 ```{r}
 # duplicates
-# print("Is there duplicates: ")
-# unique(duplicated(Gdata))
+#print("Is there duplicates: ") 
+#unique(duplicated(Gdata))
 
 # missing values
 print("Is there NAN: ")
@@ -109,15 +108,15 @@ We have 2% missing values, so we have to either drop them or impute them with re
 
 ```{r}
 # Before summarizing, we will divide our dataset based on different data type variables
-num_cols <- sapply(Cdata, is.numeric)
-num_Cdata <- Cdata[, num_cols]
+num_cols <- sapply(Cdata, is.numeric) 
+num_Cdata = Cdata[, num_cols]
 
 head(num_Cdata)
 summary(num_Cdata)
 ```
 ```{r}
 # All continuous variables can be imputed with the mean
-for (col in colnames(num_Cdata)) {
+for(col in colnames(num_Cdata)){
   Cdata[[col]][is.na(Cdata[[col]])] <- mean(Cdata[[col]], na.rm = TRUE)
 }
 # missing values
@@ -128,15 +127,15 @@ sapply(Cdata, function(x) sum(is.na(x)))
 ```{r}
 # character variables dataframe
 chr_cols <- sapply(Cdata, is.character)
-chr_Cdata <- Cdata[, chr_cols]
+chr_Cdata = Cdata[, chr_cols]
 
 head(chr_Cdata)
 summary(chr_Cdata)
 ```
 
 ```{r}
-# list of the unique values
-for (col in colnames(chr_Cdata)) {
+# list of the unique values 
+for(col in colnames(chr_Cdata)){
   print(unique(chr_Cdata[col]))
 }
 ```
@@ -168,12 +167,12 @@ sapply(Cdata, function(x) sum(is.na(x)))
 # compute the mode
 
 get_mode <- function(x) {
-  ux <- unique(x)
-  ux[which.max(tabulate(match(x, ux)))]
+    ux <- unique(x)
+    ux[which.max(tabulate(match(x, ux)))]
 }
 
 bin_cols <- sapply(Cdata, is.logical)
-bin_Cdata <- Cdata[, bin_cols]
+bin_Cdata = Cdata[, bin_cols]
 
 head(bin_Cdata)
 summary(bin_Cdata)
@@ -181,7 +180,7 @@ summary(bin_Cdata)
 
 
 ```{r}
-for (col in colnames(bin_Cdata)) {
+for(col in colnames(bin_Cdata)){
   Cdata[[col]][is.na(Cdata[[col]])] <- get_mode(bin_Cdata[[col]])
 }
 # missing values
@@ -192,25 +191,26 @@ sapply(Cdata, function(x) sum(is.na(x)))
 ```{r}
 # list variables dataframe
 list_cols <- sapply(Cdata, is.list)
-list_Cdata <- Cdata[, list_cols]
+list_Cdata = Cdata[, list_cols]
 
 head(list_Cdata)
 ```
 
 ```{r}
-# list of the unique values
-for (col in colnames(list_Cdata)) {
+# list of the unique values 
+for(col in colnames(list_Cdata)){
   print(unique(list_Cdata[col]))
 }
 ```
 ### Non-numerical variables encoding
-Now there is no missing values we can procede to the encoding of non-numerical variables. Fortunatly R have a bultin function which is factor. It internally transform the categoriel variables into dummies.
+Now there is no missing values we can procede to the encoding of non-numerical variables.
 
 ```{r}
 # we transfom the list variables into characters in order to be factorized
 Cdata$sites_of_involvement <- sapply(Cdata$sites_of_involvement, function(x) paste(unlist(x), collapse = "_"))
-Cdata$tissue_or_organ_of_origin <- sapply(Cdata$tissue_or_organ_of_origin, function(x) paste(unlist(x), collapse = "_"))
-# Toutes les colonnes
+Cdata$tissue_or_organ_of_origin <- sapply(Cdata$sites_of_involvement, function(x) paste(unlist(x), collapse = "_"))
+
+#all column names
 all_cols <- colnames(Cdata)
 
 # numerical columns
@@ -219,11 +219,11 @@ num_cols <- colnames(num_Cdata)
 # non numerical columns
 non_num_cols <- non_num_cols <- setdiff(colnames(Cdata), num_cols)
 
-# Colonnes list
+# list columns
 list_cols <- colnames(list_Cdata)
 
 # transforming non numerical columns into factors
-for (col in non_num_cols) {
+for(col in non_num_cols){
   Cdata[[col]] <- as.factor(Cdata[[col]])
 }
 ```
@@ -236,38 +236,52 @@ head(Cdata)
 
 ```{r}
 library(glmnet)
-set.seed(42)
-# Split 70% train / 30% test
+library(caret)
+set.seed(66)
+
+# --- 1. Split 70% train / 30% test stratifié ---
 n <- nrow(Cdata)
 Cdata_scaled <- Cdata
 Cdata_scaled[, num_cols] <- scale(Cdata_scaled[, num_cols])
-train_idx <- sample(1:n, size = 0.7 * n)
+
+train_idx <- createDataPartition(Cdata$vital_status, p = 0.7, list = FALSE)
 test_idx <- setdiff(1:n, train_idx)
 
 train <- Cdata_scaled[train_idx, ]
-test <- Cdata_scaled[test_idx, ]
+test  <- Cdata_scaled[test_idx, ]
 
 # Target
 y_train <- train$vital_status
-y_test <- test$vital_status
+y_test  <- test$vital_status
 
 # Features from model.matrix
-X_train <- model.matrix(~., data = train[, setdiff(names(train), "vital_status")])[, -1]
-X_test <- model.matrix(~., data = test[, setdiff(names(test), "vital_status")])[, -1]
+X_train <- model.matrix(~ ., data = train[, setdiff(names(train), "vital_status")])[,-1]
+X_test  <- model.matrix(~ ., data = test[, setdiff(names(test), "vital_status")])[,-1]
 
-# Lasso with CV on train data
-cv <- cv.glmnet(X_train, y_train, family = "binomial", alpha = 1)
+# --- 2. Lasso with cross-validation ---
+set.seed(42)
+cv <- cv.glmnet(
+  X_train, y_train,
+  family = "binomial",
+  alpha = 1,
+  nfolds = 10,          # 10-fold CV
+  type.measure = "class" # classification error
+)
 
-# best lambda
+# Best lambda from CV
 lambda_best <- cv$lambda.min
 
-# trainfinal lasso model
-lasso <- glmnet(X_train, y_train, family = "binomial", alpha = 1, lambda = lambda_best)
+# --- 3. Train final Lasso model on full train set ---
+lasso_clinical <- glmnet(X_train, y_train, family = "binomial", alpha = 1, lambda = lambda_best)
+
+# --- 4. Optional: plot CV curve ---
+plot(cv)
+abline(v = log(cv$lambda.min), col = "red", lty = 2)
 ```
 
 ```{r}
 # Prediction on test dataset
-yhat_test <- predict(lasso, newx = X_test, type = "response")
+yhat_test = predict(lasso_clinical, newx=X_test, type="response")
 yhat_class <- ifelse(yhat_test > 0.08, "Dead", "Alive")
 table(y_test, yhat_class)
 # Taux de précision
@@ -277,24 +291,69 @@ mean(yhat_class == y_test)
 
 ```{r}
 library(pROC)
-roc_obj <- roc(y_test, yhat_test)
+roc_obj <- roc(y_test, yhat_test) 
 
 # Plot ROC curve
-plot(roc_obj, col = "blue", main = "ROC Curve")
+plot(roc_obj, col="blue", main="ROC Curve")
 
 # Best threshold according to Youden cryteria
-opt <- coords(roc_obj, "best", best.method = "youden", ret = c("threshold", "sensitivity", "specificity"))
+opt <- coords(roc_obj, "best", best.method="youden", ret=c("threshold","sensitivity","specificity"))
 print(opt)
+```
+```{r}
+# coef extraction (inclut intercept)
+coef_mat <- as.matrix(coef(lasso_clinical))
+names_coef <- rownames(coef_mat)
+coef_vec <- as.numeric(coef_mat[, 1])
+
+# liste des variables d'origine (à adapter si ton nom cible diffère)
+orig_vars <- setdiff(names(train), "vital_status")
+
+# fonction qui retourne le préfixe d'origine le plus long qui matche le début du dummy
+map_var <- function(colname, orig_list) {
+  if (colname %in% c("(Intercept)", "Intercept")) return("INTERCEPT")
+  hits <- orig_list[startsWith(colname, orig_list)]
+  if (length(hits) == 0) {
+    # si aucun préfixe, on retourne le colname brut (utile pour variables numériques exactes)
+    return(colname)
+  }
+  # choisir le préfixe le plus long (évite collisions comme "age" vs "age_group")
+  hits[which.max(nchar(hits))]
+}
+
+variable_name <- sapply(names_coef, map_var, orig_list = orig_vars, USE.NAMES = FALSE)
+
+# dataframe
+df_vars <- data.frame(
+  col = names_coef,
+  coef = coef_vec,
+  variable = variable_name,
+  stringsAsFactors = FALSE
+)
+
+# enlever intercept
+df_vars <- df_vars[!df_vars$variable %in% c("INTERCEPT"), ]
+
+# créer colonne abs_coef puis agréger
+df_vars$abs_coef <- abs(df_vars$coef)
+
+importance <- aggregate(abs_coef ~ variable, data = df_vars, FUN = sum)
+
+# trier correctement (attention au nom de la colonne)
+importance <- importance[order(-importance$abs_coef), , drop = FALSE]
+
+# afficher top 30
+head(importance, 30)
 ```
 
 # Model on GeneX only:
 ```{r}
-# Split 70% train / 30% test
-set.seed(42)
+# Split 70% train / 30% test 1
+set.seed(0)
 Gdata_scaled <- data.frame(vital_status = Cdata$vital_status, scale(Gdata))
 
 n <- nrow(Gdata_scaled)
-train_idx <- sample(1:n, size = 0.7 * n)
+train_idx <- createDataPartition(Cdata$vital_status, p = 0.7, list = FALSE)
 test_idx <- setdiff(1:n, train_idx)
 
 train <- Gdata_scaled[train_idx, ]
@@ -302,14 +361,20 @@ test <- Gdata_scaled[test_idx, ]
 
 # Target
 y_train <- train$vital_status
-y_test <- test$vital_status
+y_test  <- test$vital_status
 
 # Features from model.matrix
-X_train <- model.matrix(~., data = train[, setdiff(names(train), "vital_status")])[, -1]
-X_test <- model.matrix(~., data = test[, setdiff(names(test), "vital_status")])[, -1]
+X_train <- model.matrix(~ ., data = train[, setdiff(names(train), "vital_status")])[,-1]
+X_test  <- model.matrix(~ ., data = test[, setdiff(names(test), "vital_status")])[,-1]
 
 # Lasso with CV on train data
-cv <- cv.glmnet(X_train, y_train, family = "binomial", alpha = 1)
+cv <- cv.glmnet(
+  X_train, y_train,
+  family = "binomial",
+  alpha = 1,
+  nfolds = 10,          # 10-fold CV
+  type.measure = "class" # classification error
+)
 
 # best lambda
 lambda_best <- cv$lambda.min
@@ -320,8 +385,8 @@ lasso <- glmnet(X_train, y_train, family = "binomial", alpha = 1, lambda = lambd
 
 ```{r}
 # Prediction on test dataset
-yhat_test <- predict(lasso, newx = X_test, type = "response")
-yhat_class <- ifelse(yhat_test > 0.15, "Dead", "Alive")
+yhat_test = predict(lasso, newx=X_test, type="response")
+yhat_class <- ifelse(yhat_test > 0.09, "Dead", "Alive")
 table(y_test, yhat_class)
 # Taux de précision
 mean(yhat_class == y_test)
@@ -330,72 +395,109 @@ mean(yhat_class == y_test)
 
 ```{r}
 library(pROC)
-roc_obj <- roc(y_test, yhat_test)
+roc_obj <- roc(y_test, yhat_test) 
 
 # Plot ROC curve
-plot(roc_obj, col = "blue", main = "ROC Curve")
+plot(roc_obj, col="blue", main="ROC Curve")
 
 # Best threshold according to Youden cryteria
-opt <- coords(roc_obj, "best", best.method = "youden", ret = c("threshold", "sensitivity", "specificity"))
+opt <- coords(roc_obj, "best", best.method="youden", ret=c("threshold","sensitivity","specificity"))
 print(opt)
 ```
 
 # Screening Model:
 ```{r}
+set.seed(42)
 x <- scale(as.matrix(Gdata))
 y <- Cdata$vital_status
 
 cv <- cv.glmnet(x, y, family = "binomial", alpha = 1)
 
-lasso <- glmnet(x, y, family = "binomial", alpha = 1, lambda = cv$lambda.min)
+ridge <- glmnet(x, y, family = "binomial", alpha = 0, lambda = cv$lambda.min)
 
-coef_lasso <- coef(lasso)
+coef_ridge <- as.numeric(coef(ridge)[-1,1])   # enlever l'intercept
+names_coef <- rownames(coef(ridge))[-1]
 
-# Extraire les variables non nulles
-sig_vars <- rownames(coef_lasso)[coef_lasso[, 1] != 0]
-sig_vars <- sig_vars[sig_vars != "(Intercept)"]
+# top 200 par valeur absolue
+top_idx <- order(abs(coef_ridge), decreasing = TRUE)[1:100]
+sig_vars <- names_coef[top_idx]
+```
+
+## The final dataframe
+```{r}
+df_final = cbind(Cdata, scale(Gdata))
+df_final[, num_cols] = scale(df_final[, num_cols])
+head(df_final)
+```
+```{r}
+set.seed(13)
+
+# --- 1. Stratified train/test split ---
+n <- nrow(df_final)
+train_idx <- createDataPartition(df_final$vital_status, p = 0.7, list = FALSE)
+test_idx  <- setdiff(1:n, train_idx)
+
+train <- df_final[train_idx, ]
+test  <- df_final[test_idx, ]
+
+# --- 2. Target variable ---
+y_train <- train$vital_status
+y_test  <- test$vital_status 
 ```
 
 ```{r}
-df_final <- cbind(Cdata, scale(Gdata[, sig_vars]))
-df_final[, num_cols] <- scale(df_final[, num_cols])
-head(df_final)
+# --- 3. Ridge on gene columns to select top genes ---
+# Assuming gene columns are 20:119
+train_genes <- scale(as.matrix(train[, 20:5019]))
+cv_ridge <- cv.glmnet(
+  train_genes, y_train,
+  family = "binomial",
+  alpha = 1,          # Ridge
+  nfolds = 10,
+  type.measure = "class"
+)
+# --- 4. train a ridge model with the best lambda ---
+ridge <- glmnet(train_genes, y_train, family = "binomial", alpha = 1, lambda = cv_ridge$lambda.min)
 ```
 
 ```{r}
 library(glmnet)
-set.seed(3)
 
-# Split 70% train / 30% test
-n <- nrow(df_final)
-train_idx <- sample(1:n, size = 0.7 * n)
-test_idx <- setdiff(1:n, train_idx)
+# Extract coefficients
+coef_ridge <- as.numeric(coef(ridge)[-1, 1])  # remove intercept
+names_coef <- rownames(coef(ridge))[-1]
 
-train <- df_final[train_idx, ]
-test <- df_final[test_idx, ]
+# Select top 200 genes by absolute coefficient
+top_idx <- order(abs(coef_ridge), decreasing = TRUE)[1:200]
+sig_vars <- names_coef[top_idx]
 
-# Target
-y_train <- train$vital_status
-y_test <- test$vital_status
+# --- 4. Construct final dataset with top genes + clinical ---
+train_reduced <- cbind(train[, 1:19], train[, sig_vars])
+test_reduced  <- cbind(test[, 1:19], test[, sig_vars])
 
-# Features avec model.matrix
-X_train <- model.matrix(~., data = train[, setdiff(names(train), "vital_status")])[, -1]
-X_test <- model.matrix(~., data = test[, setdiff(names(test), "vital_status")])[, -1]
+# --- 5. Model matrices for Lasso ---
+X_train <- model.matrix(~ ., data = train_reduced[,setdiff(names(train_reduced), "vital_status")])[,-1]
+X_test  <- model.matrix(~ ., data = test_reduced[,setdiff(names(train_reduced), "vital_status")])[,-1]
 
-# Lasso avec CV sur le train
-cv <- cv.glmnet(X_train, y_train, family = "binomial", alpha = 1)
+# --- 6. Lasso with CV ---
+cv_lasso <- cv.glmnet(
+  X_train, y_train,
+  family = "binomial",
+  alpha = 1,        # Lasso
+  nfolds = 10,
+  type.measure = "class"
+)
 
-# Meilleur lambda
-lambda_best <- cv$lambda.min
+lambda_best <- cv_lasso$lambda.min
 
-# Entraîner modèle final
-lasso <- glmnet(X_train, y_train, family = "binomial", alpha = 1, lambda = lambda_best)
+# --- 7. Train final Lasso ---
+lasso_final <- glmnet(X_train, y_train, family = "binomial", alpha = 1, lambda = lambda_best)
 ```
 
 ```{r}
 # Prédictions sur le test
-yhat_test <- predict(lasso, newx = X_test, type = "response")
-yhat_class <- ifelse(yhat_test > 0.08, "Dead", "Alive")
+yhat_test = predict(lasso_final, newx=X_test, type="response")
+yhat_class <- ifelse(yhat_test > 0.02, "Dead", "Alive")
 table(y_test, yhat_class)
 # Taux de précision
 mean(yhat_class == y_test)
@@ -403,16 +505,16 @@ mean(yhat_class == y_test)
 
 ```{r}
 library(pROC)
-roc_obj <- roc(y_test, yhat_test)
+roc_obj <- roc(y_test, yhat_test) 
 
 # Afficher la courbe ROC
-plot(roc_obj, col = "blue", main = "ROC Curve")
+plot(roc_obj, col="blue", main="ROC Curve")
 
 # Calculer AUC
 auc(roc_obj)
 
 # Trouver le seuil optimal selon le critère de Youden
-opt <- coords(roc_obj, "best", best.method = "youden", ret = c("threshold", "sensitivity", "specificity"))
+opt <- coords(roc_obj, "best", best.method="youden", ret=c("threshold","sensitivity","specificity"))
 print(opt)
 ```
 
@@ -420,19 +522,18 @@ print(opt)
 
 ```{r}
 df_complete <- cbind(Cdata, scale(Gdata))
-df_complete[, num_cols] <- scale(df_complete[, num_cols])
+df_complete[, num_cols] <- scale(df_complete[, num_cols] )
 head(df_complete)
 ```
 
-
 ```{r}
-# Variable cible
+# Variable cible 56
 library(glmnet)
-set.seed(0)
+set.seed(56)
 
 # Split 70% train / 30% test
 n <- nrow(df_complete)
-train_idx <- sample(1:n, size = 0.7 * n)
+train_idx <- sample(1:n, size = 0.7*n)
 test_idx <- setdiff(1:n, train_idx)
 
 train <- df_complete[train_idx, ]
@@ -440,66 +541,37 @@ test <- df_complete[test_idx, ]
 
 # Target
 y_train <- train$vital_status
-y_test <- test$vital_status
+y_test  <- test$vital_status
 
 # Features avec model.matrix
-X_train <- model.matrix(~., data = train[, setdiff(names(train), "vital_status")])[, -1]
-X_test <- model.matrix(~., data = test[, setdiff(names(test), "vital_status")])[, -1]
+X_train <- model.matrix(~ ., data = train[, setdiff(names(train), "vital_status")])[,-1]
+X_test  <- model.matrix(~ ., data = test[, setdiff(names(test), "vital_status")])[,-1]
 
 # variables to penalize
 pf <- rep(1, ncol(X_train))
 pf[c(1:21)] <- 0
 
 # Lasso avec CV sur le train
-cv <- cv.glmnet(X_train, y_train, family = "binomial", alpha = 1, penalty.factor = pf)
+cv <- cv.glmnet(
+  X_train, y_train,
+  family = "binomial",
+  alpha = 1,
+  nfolds = 10,          # 10-fold CV
+  type.measure = "class",
+  penality.factor=pf
+)
 
 # Meilleur lambda
 lambda_best <- cv$lambda.min
 
 # Entraîner modèle final
-lasso <- glmnet(X_train, y_train, family = "binomial", alpha = 1, lambda = lambda_best, penalty.factor = pf)
+lasso <- glmnet(X_train, y_train, family = "binomial", alpha = 1, lambda = lambda_best, penalty.factor=pf)
 ```
 
 ```{r}
 # Prédictions sur le test
-yhat_test <- predict(lasso, newx = X_test, type = "response")
-yhat_class <- ifelse(yhat_test > 0.24, "Dead", "Alive")
-table(y_test, yhat_class)
-# Taux de précision
-mean(yhat_class == y_test)
-```
-```{r}
-library(pROC)
-roc_obj <- roc(y_test, yhat_test)
-
-# Afficher la courbe ROC
-plot(roc_obj, col = "blue", main = "ROC Curve")
-
-# Calculer AUC
-auc(roc_obj)
-
-# Trouver le seuil optimal selon le critère de Youden
-opt <- coords(roc_obj, "best", best.method = "youden", ret = c("threshold", "sensitivity", "specificity"))
-print(opt)
-```
-
-```{r}
-library(grpreg)
-
-# Définir les groupes
-# Ici variables 1 à 21 = groupe 1, le reste = groupe 2
-group <- c(rep(1, 21), rep(2, ncol(X_train) - 21))
-
-# Cross-validation Group Lasso
-lasso <- cv.grpreg(X_train, y_train, group = group, penalty = "grLasso", family = "binomial")
-
-# Meilleur lambda
-lambda_best <- cvfit$lambda.min
-```
-```{r}
-# Prédictions sur le test
-yhat_test <- predict(lasso, X_test, lambda = lambda_best, type = "response")
-yhat_class <- ifelse(yhat_test > 0.24, "Dead", "Alive")
+yhat_test = predict(lasso, newx=X_test, type="response")
+yhat_class <- ifelse(yhat_test > 0.1, "Dead", "Alive")
 table(y_test, yhat_class)
 # Taux de précision
 mean(yhat_class == y_test)
@@ -507,15 +579,16 @@ mean(yhat_class == y_test)
 
 ```{r}
 library(pROC)
-roc_obj <- roc(y_test, yhat_test)
+roc_obj <- roc(y_test, yhat_test) 
 
 # Afficher la courbe ROC
-plot(roc_obj, col = "blue", main = "ROC Curve")
+plot(roc_obj, col="blue", main="ROC Curve")
 
 # Calculer AUC
 auc(roc_obj)
 
 # Trouver le seuil optimal selon le critère de Youden
-opt <- coords(roc_obj, "best", best.method = "youden", ret = c("threshold", "sensitivity", "specificity"))
+opt <- coords(roc_obj, "best", best.method="youden", ret=c("threshold","sensitivity","specificity"))
 print(opt)
 ```
+
