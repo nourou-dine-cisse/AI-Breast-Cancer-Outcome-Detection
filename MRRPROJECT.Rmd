@@ -349,7 +349,6 @@ head(importance, 30)
 # Model on GeneX only:
 ```{r}
 # Split 70% train / 30% test 1
-set.seed(0)
 Gdata_scaled <- data.frame(vital_status = Cdata$vital_status, scale(Gdata))
 
 n <- nrow(Gdata_scaled)
@@ -386,7 +385,7 @@ lasso <- glmnet(X_train, y_train, family = "binomial", alpha = 1, lambda = lambd
 ```{r}
 # Prediction on test dataset
 yhat_test = predict(lasso, newx=X_test, type="response")
-yhat_class <- ifelse(yhat_test > 0.09, "Dead", "Alive")
+yhat_class <- ifelse(yhat_test > 0.15, "Dead", "Alive")
 table(y_test, yhat_class)
 # Taux de précision
 mean(yhat_class == y_test)
@@ -406,22 +405,6 @@ print(opt)
 ```
 
 # Screening Model:
-```{r}
-set.seed(42)
-x <- scale(as.matrix(Gdata))
-y <- Cdata$vital_status
-
-cv <- cv.glmnet(x, y, family = "binomial", alpha = 1)
-
-ridge <- glmnet(x, y, family = "binomial", alpha = 0, lambda = cv$lambda.min)
-
-coef_ridge <- as.numeric(coef(ridge)[-1,1])   # enlever l'intercept
-names_coef <- rownames(coef(ridge))[-1]
-
-# top 200 par valeur absolue
-top_idx <- order(abs(coef_ridge), decreasing = TRUE)[1:100]
-sig_vars <- names_coef[top_idx]
-```
 
 ## The final dataframe
 ```{r}
@@ -429,8 +412,9 @@ df_final = cbind(Cdata, scale(Gdata))
 df_final[, num_cols] = scale(df_final[, num_cols])
 head(df_final)
 ```
+
 ```{r}
-set.seed(13)
+set.seed(66)
 
 # --- 1. Stratified train/test split ---
 n <- nrow(df_final)
@@ -462,13 +446,13 @@ ridge <- glmnet(train_genes, y_train, family = "binomial", alpha = 1, lambda = c
 
 ```{r}
 library(glmnet)
-
+set.seed(66)
 # Extract coefficients
 coef_ridge <- as.numeric(coef(ridge)[-1, 1])  # remove intercept
 names_coef <- rownames(coef(ridge))[-1]
 
 # Select top 200 genes by absolute coefficient
-top_idx <- order(abs(coef_ridge), decreasing = TRUE)[1:200]
+top_idx <- order(abs(coef_ridge), decreasing = TRUE)[1:1000]
 sig_vars <- names_coef[top_idx]
 
 # --- 4. Construct final dataset with top genes + clinical ---
@@ -491,13 +475,13 @@ cv_lasso <- cv.glmnet(
 lambda_best <- cv_lasso$lambda.min
 
 # --- 7. Train final Lasso ---
-lasso_final <- glmnet(X_train, y_train, family = "binomial", alpha = 1, lambda = lambda_best)
+lasso_final <- glmnet(X_train, y_train, family = "binomial", alpha = 0, lambda = lambda_best)
 ```
 
 ```{r}
 # Prédictions sur le test
 yhat_test = predict(lasso_final, newx=X_test, type="response")
-yhat_class <- ifelse(yhat_test > 0.02, "Dead", "Alive")
+yhat_class <- ifelse(yhat_test > 0.03, "Dead", "Alive")
 table(y_test, yhat_class)
 # Taux de précision
 mean(yhat_class == y_test)
@@ -529,7 +513,7 @@ head(df_complete)
 ```{r}
 # Variable cible 56
 library(glmnet)
-set.seed(56)
+set.seed(42)
 
 # Split 70% train / 30% test
 n <- nrow(df_complete)
